@@ -1,0 +1,94 @@
+version: "3"
+
+vars:
+  APP_NAME: gomodcp
+
+  # ------------------------------------------------------------------
+  # Paths
+  # ------------------------------------------------------------------
+  BIN_DIR: bin
+  BIN_PATH: "{{.BIN_DIR}}/{{.APP_NAME}}"
+
+  INSTALL_DIR: "{{.HOME}}/.local/bin"
+
+  FISH_COMPLETION_DIR: "{{.HOME}}/.config/fish/completions"
+  FISH_COMPLETION_FILE: "{{.FISH_COMPLETION_DIR}}/{{.APP_NAME}}.fish"
+
+  # ------------------------------------------------------------------
+  # Git
+  # ------------------------------------------------------------------
+  GIT_VERSION:
+    sh: git describe --always --dirty --exclude='*'
+
+tasks:
+  # ------------------------------------------------------------
+  # Default
+  # ------------------------------------------------------------
+  default:
+    desc: Show detailed task list
+    cmds:
+      - task --list-all
+
+  # ------------------------------------------------------------
+  # Build (dev)
+  # ------------------------------------------------------------
+  build:
+    desc: Build gomodcp (dev version)
+    vars:
+      VERSION: "0.0.0-dev"
+      LDFLAGS: >
+        -X 'github.com/axelrhd/gomodcp.appVersion={{.VERSION}}'
+        -X 'github.com/axelrhd/gomodcp.gitVersion={{.GIT_VERSION}}'
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - >
+        go build
+        -ldflags "{{.LDFLAGS}}"
+        -o {{.BIN_PATH}}
+        ./cmd
+
+  # ------------------------------------------------------------
+  # Build (release): task build:X.Y.Z
+  # ------------------------------------------------------------
+  build:*:
+    desc: Build gomodcp with explicit version (task build:X.Y.Z)
+    vars:
+      VERSION: "{{index .MATCH 0}}"
+      LDFLAGS: >
+        -X 'github.com/axelrhd/gomodcp.appVersion={{.VERSION}}'
+        -X 'github.com/axelrhd/gomodcp.gitVersion={{.GIT_VERSION}}'
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - >
+        go build
+        -ldflags "{{.LDFLAGS}}"
+        -o {{.BIN_PATH}}
+        ./cmd
+
+  # ------------------------------------------------------------
+  # Completion (fish)
+  # ------------------------------------------------------------
+  completion:
+    desc: Generate fish shell completion
+    deps: [build]
+    cmds:
+      - mkdir -p {{.FISH_COMPLETION_DIR}}
+      - "{{.BIN_PATH}} completion fish > {{.FISH_COMPLETION_FILE}}"
+
+  # ------------------------------------------------------------
+  # Install
+  # ------------------------------------------------------------
+  install:
+    desc: Install gomodcp into ~/.local/bin
+    # deps: [build]
+    cmds:
+      - mkdir -p {{.INSTALL_DIR}}
+      - install -m 0755 {{.BIN_PATH}} {{.INSTALL_DIR}}/{{.APP_NAME}}
+
+  # ------------------------------------------------------------
+  # Cleanup
+  # ------------------------------------------------------------
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf {{.BIN_DIR}}
