@@ -36,9 +36,18 @@ func Run(srcDir, destMod, dstDir string, useGit bool) error {
 		}
 	}
 
+	// 1) go.mod umschreiben (neuer Modulname)
 	if err := rewriteGoMod(dstAbs, destMod); err != nil {
 		return err
 	}
 
+	// 2) 🆕 Root-Package ggf. umschreiben
+	//    - nur Root-Ebene
+	//    - NIE, wenn package main im Root existiert
+	if err := maybeRewriteRootPackage(dstAbs, destMod); err != nil {
+		return err
+	}
+
+	// 3) Imports anpassen
 	return rewriteImports(dstAbs, oldModule, destMod)
 }

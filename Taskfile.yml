@@ -70,7 +70,7 @@ tasks:
   # ------------------------------------------------------------
   completion:
     desc: Generate fish shell completion
-    deps: [build]
+    # deps: [build]
     cmds:
       - mkdir -p {{.FISH_COMPLETION_DIR}}
       - "{{.BIN_PATH}} completion fish > {{.FISH_COMPLETION_FILE}}"
