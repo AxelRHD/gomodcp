@@ -24,10 +24,14 @@ func rewriteImports(root, oldModule, newModule string) error {
 		changed := false
 		for _, imp := range file.Imports {
 			val := strings.Trim(imp.Path.Value, `"`)
-			if strings.HasPrefix(val, oldModule) {
-				imp.Path.Value = `"` + strings.Replace(val, oldModule, newModule, 1) + `"`
-				changed = true
+
+			newPath, ok := rewriteImportPath(val, oldModule, newModule)
+			if !ok {
+				continue
 			}
+
+			imp.Path.Value = `"` + newPath + `"`
+			changed = true
 		}
 
 		if !changed {
@@ -46,4 +50,19 @@ func rewriteImports(root, oldModule, newModule string) error {
 		}
 		return cfg.Fprint(f, fset, file)
 	})
+}
+
+func rewriteImportPath(path, oldMod, newMod string) (string, bool) {
+	// exakt das Modul selbst
+	if path == oldMod {
+		return newMod, true
+	}
+
+	// nur echte Subpackages (Slash ist die harte Grenze!)
+	if strings.HasPrefix(path, oldMod+"/") {
+		return newMod + strings.TrimPrefix(path, oldMod), true
+	}
+
+	// alles andere bleibt unverändert (z. B. hagg-lib)
+	return path, false
 }
